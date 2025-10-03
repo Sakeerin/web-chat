@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: clamav-pvc
+  namespace: telegram-chat
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+  storageClassName: standard
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clamav
+  namespace: telegram-chat
+  labels:
+    app: clamav
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: clamav
+  template:
+    metadata:
+      labels:
+        app: clamav
+    spec:
+      containers:
+      - name: clamav
+        image: clamav/clamav:stable
+        ports:
+        - containerPort: 3310
+        volumeMounts:
+        - name: clamav-storage
+          mountPath: /var/lib/clamav
+        livenessProbe:
+          exec:
+            command:
+            - /usr/local/bin/clamd
+            - --ping
+          initialDelaySeconds: 120
+          periodSeconds: 60
+        readinessProbe:
+          exec:
+            command:
+            - /usr/local/bin/clamd
+            - --ping
+          initialDelaySeconds: 60
+          periodSeconds: 30
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "1000m"
+      volumes:
+      - name: clamav-storage
+        persistentVolumeClaim:
+          claimName: clamav-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clamav-service
+  namespace: telegram-chat
+spec:
+  selector:
+    app: clamav
+  ports:
+  - port: 3310
+    targetPort: 3310
+  type: ClusterIP

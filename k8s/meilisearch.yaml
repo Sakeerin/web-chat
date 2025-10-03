@@ -1,0 +1,86 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: meilisearch-pvc
+  namespace: telegram-chat
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: fast-ssd
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: meilisearch
+  namespace: telegram-chat
+  labels:
+    app: meilisearch
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: meilisearch
+  template:
+    metadata:
+      labels:
+        app: meilisearch
+    spec:
+      containers:
+      - name: meilisearch
+        image: getmeili/meilisearch:v1.3
+        ports:
+        - containerPort: 7700
+        env:
+        - name: MEILI_MASTER_KEY
+          valueFrom:
+            secretKeyRef:
+              name: telegram-chat-secrets
+              key: MEILISEARCH_MASTER_KEY
+        - name: MEILI_ENV
+          value: "production"
+        - name: MEILI_DB_PATH
+          value: "/meili_data"
+        volumeMounts:
+        - name: meilisearch-storage
+          mountPath: /meili_data
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 7700
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 7700
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+      volumes:
+      - name: meilisearch-storage
+        persistentVolumeClaim:
+          claimName: meilisearch-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: meilisearch-service
+  namespace: telegram-chat
+spec:
+  selector:
+    app: meilisearch
+  ports:
+  - port: 7700
+    targetPort: 7700
+  type: ClusterIP

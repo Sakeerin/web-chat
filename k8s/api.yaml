@@ -1,0 +1,316 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: telegram-chat
+  labels:
+    app: api
+    version: v1
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: api
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: api
+        version: v1
+    spec:
+      initContainers:
+      - name: migrate
+        image: telegram-chat/api:latest
+        command: ['npx', 'prisma', 'migrate', 'deploy']
+        env:
+        - name: DATABASE_URL
+          value: "postgresql://$(DATABASE_USER):$(DATABASE_PASSWORD)@$(DATABASE_HOST):$(DATABASE_PORT)/$(DATABASE_NAME)?schema=public"
+        - name: DATABASE_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: telegram-chat-config
+              key: DATABASE_HOST
+        - name: DATABASE_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: telegram-chat-config
+              key: DATABASE_PORT
+        - name: DATABASE_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: telegram-chat-config
+              key: DATABASE_NAME
+        - name: DATABASE_USER
+          valueFrom:
+            secretKeyRef:
+              name: telegram-chat-secrets
+              key: DATABASE_USER
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: telegram-chat-secrets
+              key: DATABASE_PASSWORD
+      containers:
+      - name: api
+        image: telegram-chat/api:latest
+        ports:
+        - containerPort: 3000
+        env:
+        # Database configuration
+        - name: DATABASE_URL
+          value: "postgresql://$(DATABASE_USER):$(DATABASE_PASSWORD)@$(DATABASE_HOST):$(DATABASE_PORT)/$(DATABASE_NAME)?schema=public"
+        - name: DATABASE_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: telegram-chat-config
+              key: DATABASE_HOST
+        - name: DATABASE_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: telegram-chat-config
+              key: DATABASE_PORT
+        - name: DATABASE_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: telegram-chat-config
+              key: DATABASE_NAME
+        - name: DATABASE_USER
+          valueFrom:
+            secretKeyRef:
+              name: telegram-chat-secrets
+              key: DATABASE_USER
+        - name: DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: telegram-chat-secrets
+              key: DATABASE_PASSWORD
+        
+        # Redis configuration
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: telegram-chat-config
+              key: REDIS_HOST
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: telegram-chat-config
+              key: REDIS_PORT
+        - name: REDIS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: telegram-chat-secrets
+              key: REDIS_PASSWORD
+        
+        # MinIO configuration
+        - name: MINIO_ENDPOINT
+          valueFrom:
+            configMapKeyRef:
+              name: telegram-chat-config
+              key: MINIO_ENDPOINT
+        - name: MINIO_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: telegram-chat-config
+              key: MINIO_PORT
+        - name: MINIO_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: telegram-chat-secrets
+              key: MINIO_ACCESS_KEY
+        - name: MINIO_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              name: telegram-chat-secrets
+              key: MINIO_SECRET_KEY
+        - name: MINIO_BUCKET
+          valueFrom:
+            configMapKeyRef:
+              name: telegram-chat-config
+              key: MINIO_BUCKET
+        
+        # MeiliSearch configuration
+        - name: MEILISEARCH_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: telegram-chat-config
+              key: MEILISEARCH_HOST
+        - name: MEILISEARCH_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: telegram-chat-config
+              key: MEILISEARCH_PORT
+        - name: MEILISEARCH_MASTER_KEY
+          valueFrom:
+            secretKeyRef:
+              name: telegram-chat-secrets
+              key: MEILISEARCH_MASTER_KEY
+        
+        # NATS configuration
+        - name: NATS_URL
+          valueFrom:
+            configMapKeyRef:
+              name: telegram-chat-config
+              key: NATS_URL
+        
+        # ClamAV configuration
+        - name: CLAMAV_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: telegram-chat-config
+              key: CLAMAV_HOST
+        - name: CLAMAV_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: telegram-chat-config
+              key: CLAMAV_PORT
+        
+        # Application configuration
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: telegram-chat-config
+              key: NODE_ENV
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: telegram-chat-config
+              key: PORT
+        - name: CORS_ORIGIN
+          valueFrom:
+            configMapKeyRef:
+              name: telegram-chat-config
+              key: CORS_ORIGIN
+        
+        # JWT configuration
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: telegram-chat-secrets
+              key: JWT_SECRET
+        - name: JWT_REFRESH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: telegram-chat-secrets
+              key: JWT_REFRESH_SECRET
+        - name: JWT_EXPIRES_IN
+          valueFrom:
+            configMapKeyRef:
+              name: telegram-chat-config
+              key: JWT_EXPIRES_IN
+        - name: JWT_REFRESH_EXPIRES_IN
+          valueFrom:
+            configMapKeyRef:
+              name: telegram-chat-config
+              key: JWT_REFRESH_EXPIRES_IN
+        
+        # Rate limiting
+        - name: RATE_LIMIT_WINDOW_MS
+          valueFrom:
+            configMapKeyRef:
+              name: telegram-chat-config
+              key: RATE_LIMIT_WINDOW_MS
+        - name: RATE_LIMIT_MAX_REQUESTS
+          valueFrom:
+            configMapKeyRef:
+              name: telegram-chat-config
+              key: RATE_LIMIT_MAX_REQUESTS
+        
+        # File upload configuration
+        - name: MAX_FILE_SIZE
+          valueFrom:
+            configMapKeyRef:
+              name: telegram-chat-config
+              key: MAX_FILE_SIZE
+        - name: ALLOWED_FILE_TYPES
+          valueFrom:
+            configMapKeyRef:
+              name: telegram-chat-config
+              key: ALLOWED_FILE_TYPES
+        
+        # Encryption
+        - name: ENCRYPTION_KEY
+          valueFrom:
+            secretKeyRef:
+              name: telegram-chat-secrets
+              key: ENCRYPTION_KEY
+        
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        
+        readinessProbe:
+          httpGet:
+            path: /health/ready
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1001
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-service
+  namespace: telegram-chat
+  labels:
+    app: api
+spec:
+  selector:
+    app: api
+  ports:
+  - name: http
+    port: 3000
+    targetPort: 3000
+    protocol: TCP
+  type: ClusterIP
+
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api-hpa
+  namespace: telegram-chat
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api
+  minReplicas: 3
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80

@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: telegram-chat-config
+  namespace: telegram-chat
+data:
+  # Database configuration
+  DATABASE_HOST: "postgres-service"
+  DATABASE_PORT: "5432"
+  DATABASE_NAME: "telegram_chat"
+  
+  # Redis configuration
+  REDIS_HOST: "redis-service"
+  REDIS_PORT: "6379"
+  
+  # MinIO configuration
+  MINIO_ENDPOINT: "minio-service"
+  MINIO_PORT: "9000"
+  MINIO_BUCKET: "telegram-chat-files"
+  
+  # MeiliSearch configuration
+  MEILISEARCH_HOST: "meilisearch-service"
+  MEILISEARCH_PORT: "7700"
+  
+  # NATS configuration
+  NATS_URL: "nats://nats-service:4222"
+  
+  # ClamAV configuration
+  CLAMAV_HOST: "clamav-service"
+  CLAMAV_PORT: "3310"
+  
+  # Application configuration
+  NODE_ENV: "production"
+  PORT: "3000"
+  CORS_ORIGIN: "https://chat.example.com"
+  
+  # JWT configuration
+  JWT_EXPIRES_IN: "10m"
+  JWT_REFRESH_EXPIRES_IN: "7d"
+  
+  # Rate limiting
+  RATE_LIMIT_WINDOW_MS: "900000"
+  RATE_LIMIT_MAX_REQUESTS: "100"
+  
+  # File upload limits
+  MAX_FILE_SIZE: "52428800"
+  ALLOWED_FILE_TYPES: "image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,audio/mpeg,audio/wav,application/pdf"

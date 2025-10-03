@@ -25,8 +25,16 @@
     "db:migrate": "pnpm --filter api db:migrate",
     "db:seed": "pnpm --filter api db:seed",
     "db:studio": "pnpm --filter api db:studio",
-    "deploy:staging": "echo 'Deploy to staging'",
-    "deploy:prod": "echo 'Deploy to production'"
+    "docker:build": "bash scripts/build-images.sh",
+    "docker:build:tag": "bash scripts/build-images.sh",
+    "k8s:deploy:dev": "bash scripts/k8s-deploy.sh development deploy",
+    "k8s:deploy:staging": "bash scripts/k8s-deploy.sh staging deploy",
+    "k8s:deploy:prod": "bash scripts/k8s-deploy.sh production deploy",
+    "k8s:status": "bash scripts/k8s-deploy.sh development status",
+    "k8s:logs": "bash scripts/k8s-deploy.sh development logs",
+    "k8s:destroy": "bash scripts/k8s-deploy.sh development destroy",
+    "deploy:staging": "bash scripts/deploy.sh staging",
+    "deploy:prod": "bash scripts/deploy.sh production"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^6.0.0",
