@@ -1,0 +1,375 @@
+/* RTL (Right-to-Left) Language Support */
+
+/* CSS Custom Properties for RTL */
+:root {
+  --text-direction: ltr;
+  --start: left;
+  --end: right;
+}
+
+[dir="rtl"] {
+  --text-direction: rtl;
+  --start: right;
+  --end: left;
+}
+
+/* Base RTL Styles */
+.rtl {
+  direction: rtl;
+  text-align: right;
+}
+
+.ltr {
+  direction: ltr;
+  text-align: left;
+}
+
+/* Logical Properties Support */
+.logical-margin-start {
+  margin-inline-start: var(--spacing, 1rem);
+}
+
+.logical-margin-end {
+  margin-inline-end: var(--spacing, 1rem);
+}
+
+.logical-padding-start {
+  padding-inline-start: var(--spacing, 1rem);
+}
+
+.logical-padding-end {
+  padding-inline-end: var(--spacing, 1rem);
+}
+
+.logical-border-start {
+  border-inline-start: 1px solid var(--border-color, #e5e7eb);
+}
+
+.logical-border-end {
+  border-inline-end: 1px solid var(--border-color, #e5e7eb);
+}
+
+/* Text Alignment */
+.text-start {
+  text-align: start;
+}
+
+.text-end {
+  text-align: end;
+}
+
+/* Flexbox RTL Support */
+.flex-row-rtl {
+  flex-direction: row;
+}
+
+[dir="rtl"] .flex-row-rtl {
+  flex-direction: row-reverse;
+}
+
+.flex-row-reverse-rtl {
+  flex-direction: row-reverse;
+}
+
+[dir="rtl"] .flex-row-reverse-rtl {
+  flex-direction: row;
+}
+
+/* Grid RTL Support */
+.grid-rtl {
+  grid-auto-flow: column;
+}
+
+[dir="rtl"] .grid-rtl {
+  grid-auto-flow: column reverse;
+}
+
+/* Position RTL Support */
+.absolute-start {
+  position: absolute;
+  left: var(--position, 0);
+}
+
+[dir="rtl"] .absolute-start {
+  left: auto;
+  right: var(--position, 0);
+}
+
+.absolute-end {
+  position: absolute;
+  right: var(--position, 0);
+}
+
+[dir="rtl"] .absolute-end {
+  right: auto;
+  left: var(--position, 0);
+}
+
+/* Transform RTL Support */
+.transform-rtl {
+  transform: translateX(var(--translate-x, 0));
+}
+
+[dir="rtl"] .transform-rtl {
+  transform: translateX(calc(-1 * var(--translate-x, 0)));
+}
+
+/* Icon RTL Support */
+.icon-rtl {
+  transform: scaleX(1);
+}
+
+[dir="rtl"] .icon-rtl {
+  transform: scaleX(-1);
+}
+
+/* Specific icon exceptions that should not flip */
+[dir="rtl"] .icon-no-flip {
+  transform: scaleX(1) !important;
+}
+
+/* Chat-specific RTL styles */
+.message-bubble {
+  border-radius: 1rem 1rem 0.25rem 1rem;
+}
+
+[dir="rtl"] .message-bubble {
+  border-radius: 1rem 1rem 1rem 0.25rem;
+}
+
+.message-bubble.own {
+  border-radius: 1rem 1rem 1rem 0.25rem;
+}
+
+[dir="rtl"] .message-bubble.own {
+  border-radius: 1rem 1rem 0.25rem 1rem;
+}
+
+/* Input RTL Support */
+.input-rtl {
+  text-align: start;
+}
+
+.input-rtl::placeholder {
+  text-align: start;
+}
+
+/* Dropdown/Menu RTL Support */
+.dropdown-menu {
+  left: 0;
+  right: auto;
+}
+
+[dir="rtl"] .dropdown-menu {
+  left: auto;
+  right: 0;
+}
+
+.dropdown-menu-end {
+  left: auto;
+  right: 0;
+}
+
+[dir="rtl"] .dropdown-menu-end {
+  left: 0;
+  right: auto;
+}
+
+/* Tooltip RTL Support */
+.tooltip-start {
+  left: 0;
+  right: auto;
+}
+
+[dir="rtl"] .tooltip-start {
+  left: auto;
+  right: 0;
+}
+
+.tooltip-end {
+  left: auto;
+  right: 0;
+}
+
+[dir="rtl"] .tooltip-end {
+  left: 0;
+  right: auto;
+}
+
+/* Animation RTL Support */
+@keyframes slideInStart {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInEnd {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+[dir="rtl"] @keyframes slideInStart {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+[dir="rtl"] @keyframes slideInEnd {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.slide-in-start {
+  animation: slideInStart 0.3s ease-out;
+}
+
+.slide-in-end {
+  animation: slideInEnd 0.3s ease-out;
+}
+
+/* Scrollbar RTL Support */
+.scrollbar-rtl {
+  scrollbar-width: thin;
+}
+
+.scrollbar-rtl::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-rtl::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-rtl::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+[dir="rtl"] .scrollbar-rtl::-webkit-scrollbar {
+  left: 0;
+  right: auto;
+}
+
+/* Table RTL Support */
+.table-rtl {
+  text-align: start;
+}
+
+.table-rtl th,
+.table-rtl td {
+  text-align: start;
+}
+
+.table-rtl th:first-child,
+.table-rtl td:first-child {
+  padding-inline-start: 1rem;
+  padding-inline-end: 0.5rem;
+}
+
+.table-rtl th:last-child,
+.table-rtl td:last-child {
+  padding-inline-start: 0.5rem;
+  padding-inline-end: 1rem;
+}
+
+/* Form RTL Support */
+.form-rtl label {
+  text-align: start;
+}
+
+.form-rtl input,
+.form-rtl textarea,
+.form-rtl select {
+  text-align: start;
+}
+
+.form-rtl input[type="checkbox"],
+.form-rtl input[type="radio"] {
+  margin-inline-end: 0.5rem;
+  margin-inline-start: 0;
+}
+
+/* Navigation RTL Support */
+.nav-rtl {
+  flex-direction: row;
+}
+
+[dir="rtl"] .nav-rtl {
+  flex-direction: row-reverse;
+}
+
+.breadcrumb-rtl {
+  flex-direction: row;
+}
+
+[dir="rtl"] .breadcrumb-rtl {
+  flex-direction: row-reverse;
+}
+
+.breadcrumb-rtl .separator {
+  transform: scaleX(1);
+}
+
+[dir="rtl"] .breadcrumb-rtl .separator {
+  transform: scaleX(-1);
+}
+
+/* Utility Classes */
+.rtl-hidden {
+  display: block;
+}
+
+[dir="rtl"] .rtl-hidden {
+  display: none;
+}
+
+.ltr-hidden {
+  display: none;
+}
+
+[dir="rtl"] .ltr-hidden {
+  display: block;
+}
+
+.rtl-only {
+  display: none;
+}
+
+[dir="rtl"] .rtl-only {
+  display: block;
+}
+
+.ltr-only {
+  display: block;
+}
+
+[dir="rtl"] .ltr-only {
+  display: none;
+}
+
+/* Screen Reader Support */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

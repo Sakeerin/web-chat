@@ -1,0 +1,45 @@
+{
+  "name": "telegram-web-chat",
+  "version": "1.0.0",
+  "description": "A fast, secure, and scalable web chat application with Telegram-like experience",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "pnpm --parallel --recursive dev",
+    "build": "pnpm --recursive build",
+    "test": "pnpm --recursive test",
+    "test:unit": "pnpm --recursive test:unit",
+    "test:integration": "pnpm --recursive test:integration",
+    "test:e2e": "pnpm --recursive test:e2e",
+    "test:load": "pnpm --recursive test:load",
+    "test:cov": "jest --coverage",
+    "test:coverage": "node scripts/test-coverage.js",
+    "test:watch": "pnpm --recursive test:watch",
+    "test:ci": "pnpm test:coverage",
+    "lint": "pnpm --recursive lint",
+    "lint:fix": "pnpm --recursive lint:fix",
+    "format": "pnpm --recursive format",
+    "db:migrate": "pnpm --filter api db:migrate",
+    "db:seed": "pnpm --filter api db:seed",
+    "db:studio": "pnpm --filter api db:studio",
+    "deploy:staging": "echo 'Deploy to staging'",
+    "deploy:prod": "echo 'Deploy to production'"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.45.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.1.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0"
+}

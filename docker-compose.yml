@@ -1,0 +1,123 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: telegram-chat-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: telegram_chat
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache and Pub/Sub
+  redis:
+    image: redis:7-alpine
+    container_name: telegram-chat-redis
+    restart: unless-stopped
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO S3-compatible Object Storage
+  minio:
+    image: minio/minio:latest
+    container_name: telegram-chat-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # MeiliSearch for Full-text Search
+  meilisearch:
+    image: getmeili/meilisearch:v1.3
+    container_name: telegram-chat-meilisearch
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: masterKey123
+      MEILI_ENV: development
+    ports:
+      - '7700:7700'
+    volumes:
+      - meilisearch_data:/meili_data
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:7700/health']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # NATS Streaming for Message Queue
+  nats:
+    image: nats:2.9-alpine
+    container_name: telegram-chat-nats
+    restart: unless-stopped
+    ports:
+      - '4222:4222'
+      - '8222:8222'
+    command: ['-js', '-m', '8222']
+    healthcheck:
+      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:8222/']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ClamAV Antivirus Scanner
+  clamav:
+    image: clamav/clamav:stable
+    container_name: telegram-chat-clamav
+    restart: unless-stopped
+    ports:
+      - '3310:3310'
+    volumes:
+      - clamav_data:/var/lib/clamav
+    healthcheck:
+      test: ['CMD', '/usr/local/bin/clamd', '--ping']
+      interval: 60s
+      timeout: 30s
+      retries: 3
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  minio_data:
+    driver: local
+  meilisearch_data:
+    driver: local
+  clamav_data:
+    driver: local
+
+networks:
+  default:
+    name: telegram-chat-network

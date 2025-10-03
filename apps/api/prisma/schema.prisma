@@ -1,0 +1,398 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User entity - Core user information and authentication
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  email     String   @unique
+  phone     String?  @unique
+  name      String
+  bio       String?
+  avatarUrl String?
+  
+  // Password and security
+  passwordHash String
+  salt         String
+  
+  // Privacy and status
+  lastSeenAt       DateTime @default(now())
+  isOnline         Boolean  @default(false)
+  privacySettings  Json     @default("{}")
+  
+  // Account status
+  isActive      Boolean   @default(true)
+  isVerified    Boolean   @default(false)
+  isSuspended   Boolean   @default(false)
+  suspendedUntil DateTime?
+  role          UserRole  @default(USER)
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  sessions            UserSession[]
+  sentMessages        Message[]
+  conversationMembers ConversationMember[]
+  ownedConversations  Conversation[]       @relation("ConversationOwner")
+  sentContactRequests ContactRequest[]     @relation("SentRequests")
+  receivedContactRequests ContactRequest[] @relation("ReceivedRequests")
+  blockedUsers        BlockedUser[]        @relation("BlockingUser")
+  blockedByUsers      BlockedUser[]        @relation("BlockedUser")
+  reportsMade         UserReport[]         @relation("ReportingUser")
+  reportsReceived     UserReport[]         @relation("ReportedUser")
+  messageReceipts     MessageReceipt[]
+  passwordResetTokens PasswordResetToken[]
+  
+  @@map("users")
+  @@index([username])
+  @@index([email])
+  @@index([phone])
+  @@index([isActive, isSuspended])
+  @@index([role])
+}
+
+// User sessions for multi-device support
+model UserSession {
+  id           String   @id @default(cuid())
+  userId       String
+  deviceId     String
+  deviceName   String?
+  deviceType   String?  // web, mobile, desktop
+  ipAddress    String?
+  userAgent    String?
+  refreshToken String   @unique
+  expiresAt    DateTime
+  lastUsedAt   DateTime @default(now())
+  isActive     Boolean  @default(true)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("user_sessions")
+  @@index([userId, isActive])
+  @@index([refreshToken])
+  @@index([expiresAt])
+}
+
+// Conversations - Both DMs and group chats
+model Conversation {
+  id          String            @id @default(cuid())
+  type        ConversationType
+  title       String?           // For group chats
+  description String?
+  avatarUrl   String?
+  ownerId     String?           // Group owner
+  
+  // Settings
+  isArchived Boolean @default(false)
+  settings   Json    @default("{}")
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  owner   User?                @relation("ConversationOwner", fields: [ownerId], references: [id])
+  members ConversationMember[]
+  messages Message[]
+  
+  @@map("conversations")
+  @@index([type])
+  @@index([ownerId])
+  @@index([createdAt])
+  @@index([updatedAt])
+}
+
+enum ConversationType {
+  DM
+  GROUP
+  CHANNEL
+}
+
+// Conversation membership with roles
+model ConversationMember {
+  id             String                    @id @default(cuid())
+  conversationId String
+  userId         String
+  role           ConversationMemberRole    @default(MEMBER)
+  permissions    Json                      @default("{}")
+  
+  // Member status
+  joinedAt    DateTime  @default(now())
+  leftAt      DateTime?
+  isActive    Boolean   @default(true)
+  isMuted     Boolean   @default(false)
+  mutedUntil  DateTime?
+  
+  // Last read tracking
+  lastReadMessageId String?
+  lastReadAt        DateTime?
+  
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastReadMessage Message?  @relation("LastReadMessage", fields: [lastReadMessageId], references: [id])
+  
+  @@unique([conversationId, userId])
+  @@map("conversation_members")
+  @@index([conversationId, isActive])
+  @@index([userId, isActive])
+  @@index([conversationId, lastReadAt])
+}
+
+enum ConversationMemberRole {
+  OWNER
+  ADMIN
+  MODERATOR
+  MEMBER
+}
+
+// Messages - Core messaging entity
+model Message {
+  id             String      @id // Using ULID for time-ordered IDs (generated in service)
+  conversationId String
+  senderId       String
+  type           MessageType @default(TEXT)
+  content        String
+  metadata       Json        @default("{}")
+  
+  // Reply functionality
+  replyToId String?
+  
+  // Message state
+  isEdited  Boolean   @default(false)
+  isDeleted Boolean   @default(false)
+  deletedAt DateTime?
+  
+  // Timestamps
+  createdAt DateTime @default(now())
+  editedAt  DateTime?
+  
+  // Relations
+  conversation Conversation       @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User               @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  replyTo      Message?           @relation("MessageReply", fields: [replyToId], references: [id])
+  replies      Message[]          @relation("MessageReply")
+  attachments  Attachment[]
+  receipts     MessageReceipt[]
+  edits        MessageEdit[]
+  lastReadBy   ConversationMember[] @relation("LastReadMessage")
+  
+  @@map("messages")
+  @@index([conversationId, createdAt])
+  @@index([conversationId, id]) // For cursor-based pagination
+  @@index([senderId])
+  @@index([type])
+  @@index([isDeleted])
+  @@index([replyToId])
+  @@index([conversationId, isDeleted, createdAt]) // For message retrieval with soft delete filtering
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  VIDEO
+  AUDIO
+  FILE
+  SYSTEM
+}
+
+// Message edit history
+model MessageEdit {
+  id              String   @id @default(cuid())
+  messageId       String
+  previousContent String
+  editedAt        DateTime @default(now())
+  
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  
+  @@map("message_edits")
+  @@index([messageId, editedAt])
+}
+
+// File attachments
+model Attachment {
+  id          String  @id @default(cuid())
+  messageId   String
+  objectKey   String  @unique // S3 object key
+  fileName    String
+  mimeType    String
+  sizeBytes   Int
+  
+  // Media metadata
+  width       Int?
+  height      Int?
+  durationMs  Int?
+  thumbnailKey String? // S3 key for thumbnail
+  
+  // Processing status
+  isProcessed Boolean @default(false)
+  isScanned   Boolean @default(false)
+  scanResult  String? // CLEAN, INFECTED, PENDING
+  
+  createdAt DateTime @default(now())
+  
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  
+  @@map("attachments")
+  @@index([messageId])
+  @@index([objectKey])
+  @@index([mimeType])
+  @@index([isProcessed])
+  @@index([isScanned])
+}
+
+// Message delivery and read receipts
+model MessageReceipt {
+  id        String      @id @default(cuid())
+  messageId String
+  userId    String
+  type      ReceiptType
+  timestamp DateTime    @default(now())
+  
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([messageId, userId, type])
+  @@map("message_receipts")
+  @@index([messageId, type])
+  @@index([userId, timestamp])
+}
+
+enum ReceiptType {
+  DELIVERED
+  READ
+}
+
+// Contact management
+model ContactRequest {
+  id         String               @id @default(cuid())
+  senderId   String
+  receiverId String
+  status     ContactRequestStatus @default(PENDING)
+  message    String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  sender   User @relation("SentRequests", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("ReceivedRequests", fields: [receiverId], references: [id], onDelete: Cascade)
+  
+  @@unique([senderId, receiverId])
+  @@map("contact_requests")
+  @@index([receiverId, status])
+  @@index([senderId, status])
+}
+
+enum ContactRequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  BLOCKED
+}
+
+// User blocking system
+model BlockedUser {
+  id          String   @id @default(cuid())
+  blockingUserId String
+  blockedUserId  String
+  reason      String?
+  
+  createdAt DateTime @default(now())
+  
+  blockingUser User @relation("BlockingUser", fields: [blockingUserId], references: [id], onDelete: Cascade)
+  blockedUser  User @relation("BlockedUser", fields: [blockedUserId], references: [id], onDelete: Cascade)
+  
+  @@unique([blockingUserId, blockedUserId])
+  @@map("blocked_users")
+  @@index([blockingUserId])
+  @@index([blockedUserId])
+}
+
+// User reporting system
+model UserReport {
+  id           String     @id @default(cuid())
+  reporterId   String
+  reportedUserId String
+  reason       String
+  description  String?
+  status       ReportStatus @default(PENDING)
+  
+  // Admin handling
+  reviewedBy   String?
+  reviewedAt   DateTime?
+  resolution   String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  reporter User @relation("ReportingUser", fields: [reporterId], references: [id], onDelete: Cascade)
+  reported User @relation("ReportedUser", fields: [reportedUserId], references: [id], onDelete: Cascade)
+  
+  @@map("user_reports")
+  @@index([reportedUserId, status])
+  @@index([reporterId])
+  @@index([status])
+}
+
+enum ReportStatus {
+  PENDING
+  UNDER_REVIEW
+  RESOLVED
+  DISMISSED
+}
+
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+}
+
+// Password reset tokens
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  isUsed    Boolean  @default(false)
+  
+  createdAt DateTime @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("password_reset_tokens")
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@index([isUsed])
+}
+
+// Admin audit logs
+model AuditLog {
+  id       String @id @default(cuid())
+  adminId  String
+  action   String
+  resource String
+  resourceId String?
+  details  Json   @default("{}")
+  
+  createdAt DateTime @default(now())
+  
+  @@map("audit_logs")
+  @@index([adminId])
+  @@index([action])
+  @@index([resource, resourceId])
+  @@index([createdAt])
+}

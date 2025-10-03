@@ -1,0 +1,276 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  # Unit and Integration Tests
+  test:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+      
+      meilisearch:
+        image: getmeili/meilisearch:v1.4
+        env:
+          MEILI_MASTER_KEY: test-master-key
+        ports:
+          - 7700:7700
+
+    strategy:
+      matrix:
+        node-version: [20.x]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 8
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Setup test environment
+      run: |
+        cp apps/api/.env.example apps/api/.env
+        echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/test_db" >> apps/api/.env
+        echo "REDIS_URL=redis://localhost:6379" >> apps/api/.env
+        echo "MEILISEARCH_URL=http://localhost:7700" >> apps/api/.env
+        echo "MEILISEARCH_API_KEY=test-master-key" >> apps/api/.env
+
+    - name: Run database migrations
+      run: pnpm --filter api db:migrate
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+
+    - name: Run API unit tests
+      run: pnpm --filter api test:unit --coverage
+      env:
+        NODE_ENV: test
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+        REDIS_URL: redis://localhost:6379
+
+    - name: Run API integration tests
+      run: pnpm --filter api test:integration --coverage
+      env:
+        NODE_ENV: test
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+        REDIS_URL: redis://localhost:6379
+        MEILISEARCH_URL: http://localhost:7700
+        MEILISEARCH_API_KEY: test-master-key
+
+    - name: Run Web unit tests
+      run: pnpm --filter web test:unit --coverage
+
+    - name: Upload API coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./apps/api/coverage/lcov.info
+        flags: api
+        name: api-coverage
+
+    - name: Upload Web coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./apps/web/coverage/lcov.info
+        flags: web
+        name: web-coverage
+
+  # End-to-End Tests
+  e2e:
+    runs-on: ubuntu-latest
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+        cache: 'npm'
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 8
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Install Playwright browsers
+      run: pnpm --filter web exec playwright install --with-deps
+
+    - name: Setup test environment
+      run: |
+        cp apps/api/.env.example apps/api/.env
+        echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/test_db" >> apps/api/.env
+        echo "REDIS_URL=redis://localhost:6379" >> apps/api/.env
+
+    - name: Run database migrations
+      run: pnpm --filter api db:migrate
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+
+    - name: Build applications
+      run: pnpm build
+
+    - name: Run E2E tests
+      run: pnpm --filter web test:e2e
+      env:
+        CI: true
+
+    - name: Upload E2E test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: playwright-report
+        path: apps/web/playwright-report/
+        retention-days: 30
+
+  # Load Testing
+  load-test:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+          POSTGRES_DB: test_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+      
+      redis:
+        image: redis:7
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+        cache: 'npm'
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@v2
+      with:
+        version: 8
+
+    - name: Install k6
+      run: |
+        sudo gpg -k
+        sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+        echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+        sudo apt-get update
+        sudo apt-get install k6
+
+    - name: Install dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Setup test environment
+      run: |
+        cp apps/api/.env.example apps/api/.env
+        echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/test_db" >> apps/api/.env
+        echo "REDIS_URL=redis://localhost:6379" >> apps/api/.env
+
+    - name: Run database migrations
+      run: pnpm --filter api db:migrate
+      env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+
+    - name: Build and start applications
+      run: |
+        pnpm build
+        pnpm --filter api start:prod &
+        sleep 10
+
+    - name: Run load tests
+      run: pnpm --filter api test:load
+      env:
+        BASE_URL: http://localhost:3001
+        WS_URL: ws://localhost:3001
+
+    - name: Upload load test results
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: load-test-results
+        path: apps/api/k6-results/
+        retention-days: 30
