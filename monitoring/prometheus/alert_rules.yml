@@ -1,0 +1,122 @@
+groups:
+  - name: chat_app_performance
+    rules:
+      # High response time alert
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="chat-api"}[5m])) > 0.2
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API response time detected"
+          description: "P95 response time is {{ $value }}s, which exceeds the 200ms threshold"
+          
+      # Critical response time alert
+      - alert: CriticalResponseTime
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket{job="chat-api"}[5m])) > 0.5
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical API response time detected"
+          description: "P95 response time is {{ $value }}s, which is critically high"
+          
+      # High message latency alert
+      - alert: HighMessageLatency
+        expr: histogram_quantile(0.50, rate(websocket_message_latency_seconds_bucket{job="chat-api"}[5m])) > 0.15
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High message latency detected"
+          description: "P50 message latency is {{ $value }}s, exceeding 150ms threshold"
+          
+      # Low message throughput alert
+      - alert: LowMessageThroughput
+        expr: rate(websocket_messages_total{job="chat-api"}[5m]) < 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low message throughput detected"
+          description: "Message throughput is {{ $value }} messages/sec, below expected levels"
+          
+      # High error rate alert
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{job="chat-api",status=~"4..|5.."}[5m]) / rate(http_requests_total{job="chat-api"}[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }}, exceeding 5% threshold"
+          
+      # Critical error rate alert
+      - alert: CriticalErrorRate
+        expr: rate(http_requests_total{job="chat-api",status=~"4..|5.."}[5m]) / rate(http_requests_total{job="chat-api"}[5m]) > 0.1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }}, which is critically high"
+          
+      # High memory usage alert
+      - alert: HighMemoryUsage
+        expr: process_resident_memory_bytes{job="chat-api"} / 1024 / 1024 > 1024
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage detected"
+          description: "Memory usage is {{ $value }}MB, exceeding 1GB threshold"
+          
+      # Critical memory usage alert
+      - alert: CriticalMemoryUsage
+        expr: process_resident_memory_bytes{job="chat-api"} / 1024 / 1024 > 2048
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical memory usage detected"
+          description: "Memory usage is {{ $value }}MB, which is critically high"
+          
+      # High CPU usage alert
+      - alert: HighCPUUsage
+        expr: rate(process_cpu_seconds_total{job="chat-api"}[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage detected"
+          description: "CPU usage is {{ $value }}%, exceeding 80% threshold"
+          
+      # Database slow queries alert
+      - alert: DatabaseSlowQueries
+        expr: rate(database_slow_queries_total{job="chat-api"}[5m]) > 1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Database slow queries detected"
+          description: "Slow query rate is {{ $value }} queries/sec"
+          
+      # WebSocket connection issues
+      - alert: WebSocketConnectionFailures
+        expr: rate(websocket_connection_failures_total{job="chat-api"}[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "WebSocket connection failures detected"
+          description: "WebSocket connection failure rate is {{ $value }} failures/sec"
+          
+      # Service availability alert
+      - alert: ServiceDown
+        expr: up{job="chat-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Chat API service is down"
+          description: "The chat API service has been down for more than 1 minute"

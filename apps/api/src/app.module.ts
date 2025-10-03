@@ -15,6 +15,7 @@ import { MessagesModule } from './messages/messages.module'
 import { WebSocketModule } from './websocket/websocket.module'
 import { SearchModule } from './search/search.module'
 import { AdminModule } from './admin/admin.module'
+import { PerformanceModule } from './monitoring/performance.module'
 
 // Security components
 import { SecurityMiddleware } from './common/middleware/security.middleware'
@@ -23,6 +24,9 @@ import { RateLimitGuard } from './common/guards/rate-limit.guard'
 import { SecurityInterceptor } from './common/interceptors/security.interceptor'
 import { SanitizationPipe } from './common/pipes/sanitization.pipe'
 import { SecurityAuditService } from './common/services/security-audit.service'
+
+// Performance monitoring
+import { PerformanceMiddleware } from './monitoring/performance.middleware'
 
 @Module({
   imports: [
@@ -47,6 +51,7 @@ import { SecurityAuditService } from './common/services/security-audit.service'
     WebSocketModule,
     SearchModule,
     AdminModule,
+    PerformanceModule,
   ],
   controllers: [AppController],
   providers: [
@@ -69,7 +74,7 @@ import { SecurityAuditService } from './common/services/security-audit.service'
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(SecurityMiddleware, CsrfMiddleware)
+      .apply(SecurityMiddleware, CsrfMiddleware, PerformanceMiddleware)
       .forRoutes('*');
   }
 }
