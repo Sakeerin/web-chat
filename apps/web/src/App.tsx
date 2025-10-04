@@ -10,7 +10,7 @@ import { SecurityProvider } from '@/components/security/SecurityProvider'
 import { SecurityAlerts } from '@/components/security/SecurityAlerts'
 import { AccessibilityProvider } from '@/components/accessibility/AccessibilityProvider'
 import { I18nProvider } from '@/i18n/components/I18nProvider'
-import { createLazyRoute, withLazyLoading, preloadComponent } from '@/utils/codeSplitting'
+// Removed lazy loading for now to fix loading issues
 import { initPerformanceMonitoring } from '@/utils/performance'
 import { useTokenRefresh } from '@/hooks/useTokenRefresh'
 
@@ -19,72 +19,39 @@ import '@/i18n'
 // Import RTL styles
 import '@/styles/rtl.css'
 
-// Lazy load pages for better performance
-const LoginPage = createLazyRoute(() => import('@/pages/LoginPage'))
-const RegisterPage = createLazyRoute(() => import('@/pages/RegisterPage'))
-const ForgotPasswordPage = createLazyRoute(() => import('@/pages/ForgotPasswordPage'))
-const ResetPasswordPage = createLazyRoute(() => import('@/pages/ResetPasswordPage'))
-const ChatPage = createLazyRoute(() => import('@/pages/ChatPage'), true) // Preload chat page
-const ContactsPage = createLazyRoute(() => import('@/pages/ContactsPage'))
-const SettingsPage = createLazyRoute(() => import('@/pages/SettingsPage'))
-const SearchPage = createLazyRoute(() => import('@/pages/SearchPage'))
-const AdminPage = createLazyRoute(() => import('@/pages/AdminPage'))
+// Import pages directly for now to avoid lazy loading issues
+import LoginPage from '@/pages/LoginPage'
+import RegisterPage from '@/pages/RegisterPage'
+import ForgotPasswordPage from '@/pages/ForgotPasswordPage'
+import ResetPasswordPage from '@/pages/ResetPasswordPage'
+import ChatPage from '@/pages/ChatPage'
+import ContactsPage from '@/pages/ContactsPage'
+import SettingsPage from '@/pages/SettingsPage'
+import SearchPage from '@/pages/SearchPage'
+import AdminPage from '@/pages/AdminPage'
 
-// Wrapped lazy components with error boundaries
-const LazyLoginPage = withLazyLoading(LoginPage, 'Loading login...')
-const LazyRegisterPage = withLazyLoading(RegisterPage, 'Loading registration...')
-const LazyForgotPasswordPage = withLazyLoading(ForgotPasswordPage, 'Loading...')
-const LazyResetPasswordPage = withLazyLoading(ResetPasswordPage, 'Loading...')
-const LazyChatPage = withLazyLoading(ChatPage, 'Loading chat...')
-const LazyContactsPage = withLazyLoading(ContactsPage, 'Loading contacts...')
-const LazySettingsPage = withLazyLoading(SettingsPage, 'Loading settings...')
-const LazySearchPage = withLazyLoading(SearchPage, 'Loading search...')
-const LazyAdminPage = withLazyLoading(AdminPage, 'Loading admin panel...')
+// Use direct imports for now
 
 function AppContent() {
   // Initialize token refresh mechanism
   useTokenRefresh()
 
-  // Preload critical pages on user interaction
-  React.useEffect(() => {
-    const preloadCriticalPages = () => {
-      // Preload contacts and settings pages after a delay
-      setTimeout(() => {
-        preloadComponent(() => import('@/pages/ContactsPage'))
-        preloadComponent(() => import('@/pages/SettingsPage'))
-      }, 2000)
-    }
-
-    // Preload on user interaction
-    const handleUserInteraction = () => {
-      preloadCriticalPages()
-      document.removeEventListener('mousedown', handleUserInteraction)
-      document.removeEventListener('touchstart', handleUserInteraction)
-    }
-
-    document.addEventListener('mousedown', handleUserInteraction)
-    document.addEventListener('touchstart', handleUserInteraction)
-
-    return () => {
-      document.removeEventListener('mousedown', handleUserInteraction)
-      document.removeEventListener('touchstart', handleUserInteraction)
-    }
-  }, [])
+  // Pages are now directly imported, no preloading needed
 
   return (
     <Routes>
       {/* Public routes */}
-      <Route path="/login" element={<LazyLoginPage />} />
-      <Route path="/register" element={<LazyRegisterPage />} />
-      <Route path="/forgot-password" element={<LazyForgotPasswordPage />} />
-      <Route path="/reset-password" element={<LazyResetPasswordPage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       
       {/* Protected routes */}
       <Route
         path="/chat"
         element={
           <ProtectedRoute>
-            <LazyChatPage />
+            <ChatPage />
           </ProtectedRoute>
         }
       />
@@ -92,7 +59,7 @@ function AppContent() {
         path="/contacts"
         element={
           <ProtectedRoute>
-            <LazyContactsPage />
+            <ContactsPage />
           </ProtectedRoute>
         }
       />
@@ -100,7 +67,7 @@ function AppContent() {
         path="/settings"
         element={
           <ProtectedRoute>
-            <LazySettingsPage />
+            <SettingsPage />
           </ProtectedRoute>
         }
       />
@@ -108,7 +75,7 @@ function AppContent() {
         path="/search"
         element={
           <ProtectedRoute>
-            <LazySearchPage />
+            <SearchPage />
           </ProtectedRoute>
         }
       />
@@ -116,7 +83,7 @@ function AppContent() {
         path="/admin"
         element={
           <ProtectedRoute>
-            <LazyAdminPage />
+            <AdminPage />
           </ProtectedRoute>
         }
       />

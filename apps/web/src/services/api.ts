@@ -104,7 +104,12 @@ class ApiService {
     }
 
     try {
-      const response = await fetch(url, config)
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
+      
+      const response = await fetch(url, { ...config, signal: controller.signal })
+      clearTimeout(timeoutId)
       
       // Handle different response types
       const contentType = response.headers.get('content-type')
@@ -138,6 +143,10 @@ class ApiService {
       return data
     } catch (error) {
       if (error instanceof Error) {
+        // Handle abort/timeout errors
+        if (error.name === 'AbortError') {
+          throw new Error('Request timeout - API server may be unavailable or database not connected')
+        }
         throw error
       }
       throw new Error('Network error occurred')

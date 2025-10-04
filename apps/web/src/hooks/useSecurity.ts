@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { securityManager, SecurityConfig, DEFAULT_SECURITY_CONFIG } from '../utils/security';
+import { securityManager, DEFAULT_SECURITY_CONFIG } from '../utils/security';
+import type { SecurityConfig } from '../utils/security';
 
 export interface SecurityState {
   csrfToken: string | null;
@@ -110,10 +111,18 @@ export function useSecurity(options: UseSecurityOptions = {}) {
         csrfToken: token,
       }));
     } catch (error) {
-      addSecurityAlert({
-        type: 'error',
-        message: 'Failed to refresh CSRF token. Some operations may fail.',
-      });
+      // Only show alert in production or if it's not a connection error
+      const isConnectionError = error instanceof Error && 
+        (error.message.includes('Failed to fetch') || error.message.includes('ERR_CONNECTION_REFUSED'));
+      
+      if (!isConnectionError || import.meta.env.PROD) {
+        addSecurityAlert({
+          type: 'error',
+          message: 'Failed to refresh CSRF token. Some operations may fail.',
+        });
+      } else if (import.meta.env.DEV) {
+        console.warn('CSRF token refresh failed - API server may not be running:', error);
+      }
     }
   }, []);
 

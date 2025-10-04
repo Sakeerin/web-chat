@@ -1,5 +1,5 @@
 import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common'
-import { ConfigModule } from '@nestjs/config'
+import { ConfigModule, ConfigService } from '@nestjs/config'
 import { APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core'
 import { RedisModule } from '@nestjs-modules/ioredis'
 import { ScheduleModule } from '@nestjs/schedule'
@@ -35,10 +35,12 @@ import { PerformanceMiddleware } from './monitoring/performance.middleware'
       envFilePath: '.env',
     }),
     RedisModule.forRootAsync({
-      useFactory: () => ({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
         type: 'single',
-        url: process.env.REDIS_URL || 'redis://localhost:6379',
+        url: configService.get('REDIS_URL') || 'redis://localhost:6379',
       }),
+      inject: [ConfigService],
     }),
     ScheduleModule.forRoot(),
     CommonModule,

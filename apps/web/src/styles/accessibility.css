@@ -88,12 +88,16 @@
 }
 
 /* Enhanced focus indicators */
-.focus-ring {
-  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px hsl(var(--ring));
+  border-radius: 4px;
 }
 
-.focus-ring-inset {
-  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset;
+.focus-ring-inset:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px hsl(var(--ring));
+  border-radius: 4px;
 }
 
 /* Skip links */

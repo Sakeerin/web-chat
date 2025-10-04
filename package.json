@@ -19,6 +19,12 @@
     "test:coverage": "node scripts/test-coverage.js",
     "test:watch": "pnpm --recursive test:watch",
     "test:ci": "pnpm test:coverage",
+    "test:integration-full": "bash scripts/run-integration-tests.sh",
+    "test:cross-browser": "npx playwright test --config=tests/cross-browser/playwright.cross-browser.config.ts",
+    "test:mobile": "npx playwright test --config=tests/integration-test-runner.config.ts --project=mobile-*",
+    "test:security": "npx playwright test --config=tests/integration-test-runner.config.ts --project=security-tests",
+    "test:validation": "npx playwright test --config=tests/integration-test-runner.config.ts --project=system-validation",
+    "test:benchmarks": "npx playwright test --config=tests/integration-test-runner.config.ts --project=performance-benchmarks",
     "lint": "pnpm --recursive lint",
     "lint:fix": "pnpm --recursive lint:fix",
     "format": "pnpm --recursive format",
@@ -34,7 +40,8 @@
     "k8s:logs": "bash scripts/k8s-deploy.sh development logs",
     "k8s:destroy": "bash scripts/k8s-deploy.sh development destroy",
     "deploy:staging": "bash scripts/deploy.sh staging",
-    "deploy:prod": "bash scripts/deploy.sh production"
+    "deploy:prod": "bash scripts/deploy.sh production",
+    "validate:system": "node scripts/validate-system-completion.js"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^6.0.0",

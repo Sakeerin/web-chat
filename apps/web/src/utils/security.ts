@@ -190,7 +190,8 @@ class SecurityManager {
     }
 
     try {
-      const response = await fetch('/api/csrf-token', {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${API_BASE_URL}/api/csrf-token`, {
         method: 'GET',
         credentials: 'include',
       });
@@ -205,7 +206,15 @@ class SecurityManager {
 
       return this.csrfToken;
     } catch (error) {
-      console.error('Failed to get CSRF token:', error);
+      // In development, log as warning instead of error if it's a connection issue
+      const isConnectionError = error instanceof Error && 
+        (error.message.includes('Failed to fetch') || error.message.includes('ERR_CONNECTION_REFUSED'));
+      
+      if (isConnectionError && import.meta.env.DEV) {
+        console.warn('CSRF token fetch failed - API server may not be running');
+      } else {
+        console.error('Failed to get CSRF token:', error);
+      }
       throw error;
     }
   }

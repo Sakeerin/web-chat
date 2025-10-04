@@ -16,6 +16,9 @@ CREATE TYPE "ContactRequestStatus" AS ENUM ('PENDING', 'ACCEPTED', 'DECLINED', '
 -- CreateEnum
 CREATE TYPE "ReportStatus" AS ENUM ('PENDING', 'UNDER_REVIEW', 'RESOLVED', 'DISMISSED');
 
+-- CreateEnum
+CREATE TYPE "UserRole" AS ENUM ('USER', 'MODERATOR', 'ADMIN');
+
 -- CreateTable
 CREATE TABLE "users" (
     "id" TEXT NOT NULL,
@@ -33,6 +36,8 @@ CREATE TABLE "users" (
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "isVerified" BOOLEAN NOT NULL DEFAULT false,
     "isSuspended" BOOLEAN NOT NULL DEFAULT false,
+    "suspendedUntil" TIMESTAMP(3),
+    "role" "UserRole" NOT NULL DEFAULT 'USER',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -193,6 +198,18 @@ CREATE TABLE "user_reports" (
 );
 
 -- CreateTable
+CREATE TABLE "password_reset_tokens" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "token" TEXT NOT NULL,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "isUsed" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "password_reset_tokens_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "audit_logs" (
     "id" TEXT NOT NULL,
     "adminId" TEXT NOT NULL,
@@ -225,6 +242,9 @@ CREATE INDEX "users_phone_idx" ON "users"("phone");
 
 -- CreateIndex
 CREATE INDEX "users_isActive_isSuspended_idx" ON "users"("isActive", "isSuspended");
+
+-- CreateIndex
+CREATE INDEX "users_role_idx" ON "users"("role");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "user_sessions_refreshToken_key" ON "user_sessions"("refreshToken");
@@ -266,6 +286,9 @@ CREATE UNIQUE INDEX "conversation_members_conversationId_userId_key" ON "convers
 CREATE INDEX "messages_conversationId_createdAt_idx" ON "messages"("conversationId", "createdAt");
 
 -- CreateIndex
+CREATE INDEX "messages_conversationId_id_idx" ON "messages"("conversationId", "id");
+
+-- CreateIndex
 CREATE INDEX "messages_senderId_idx" ON "messages"("senderId");
 
 -- CreateIndex
@@ -276,6 +299,9 @@ CREATE INDEX "messages_isDeleted_idx" ON "messages"("isDeleted");
 
 -- CreateIndex
 CREATE INDEX "messages_replyToId_idx" ON "messages"("replyToId");
+
+-- CreateIndex
+CREATE INDEX "messages_conversationId_isDeleted_createdAt_idx" ON "messages"("conversationId", "isDeleted", "createdAt");
 
 -- CreateIndex
 CREATE INDEX "message_edits_messageId_editedAt_idx" ON "message_edits"("messageId", "editedAt");
@@ -333,6 +359,21 @@ CREATE INDEX "user_reports_reporterId_idx" ON "user_reports"("reporterId");
 
 -- CreateIndex
 CREATE INDEX "user_reports_status_idx" ON "user_reports"("status");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "password_reset_tokens_token_key" ON "password_reset_tokens"("token");
+
+-- CreateIndex
+CREATE INDEX "password_reset_tokens_userId_idx" ON "password_reset_tokens"("userId");
+
+-- CreateIndex
+CREATE INDEX "password_reset_tokens_token_idx" ON "password_reset_tokens"("token");
+
+-- CreateIndex
+CREATE INDEX "password_reset_tokens_expiresAt_idx" ON "password_reset_tokens"("expiresAt");
+
+-- CreateIndex
+CREATE INDEX "password_reset_tokens_isUsed_idx" ON "password_reset_tokens"("isUsed");
 
 -- CreateIndex
 CREATE INDEX "audit_logs_adminId_idx" ON "audit_logs"("adminId");
@@ -399,3 +440,6 @@ ALTER TABLE "user_reports" ADD CONSTRAINT "user_reports_reporterId_fkey" FOREIGN
 
 -- AddForeignKey
 ALTER TABLE "user_reports" ADD CONSTRAINT "user_reports_reportedUserId_fkey" FOREIGN KEY ("reportedUserId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "password_reset_tokens" ADD CONSTRAINT "password_reset_tokens_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;

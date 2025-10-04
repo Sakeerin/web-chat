@@ -4,7 +4,7 @@ import { ConversationList } from '@/components/chat/ConversationList'
 import { ChatInterface } from '@/components/chat/ChatInterface'
 import { useChatStore } from '@/stores/chatStore'
 
-export const ChatPage: React.FC = () => {
+const ChatPage: React.FC = () => {
   const { activeConversationId, conversations } = useChatStore()
   
   // Find the active conversation
@@ -39,3 +39,5 @@ export const ChatPage: React.FC = () => {
     </SocketProvider>
   )
 }
+
+export default ChatPage

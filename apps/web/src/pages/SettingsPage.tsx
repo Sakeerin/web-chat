@@ -13,7 +13,7 @@ import { usePWA } from '@/hooks/usePWA'
 
 type SettingsTab = 'security' | 'sessions' | 'profile' | 'app' | 'accessibility' | 'language'
 
-export const SettingsPage: React.FC = () => {
+const SettingsPage: React.FC = () => {
   const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile')
   const { user } = useAuth()
@@ -206,3 +206,5 @@ export const SettingsPage: React.FC = () => {
     </div>
   )
 }
+
+export default SettingsPage

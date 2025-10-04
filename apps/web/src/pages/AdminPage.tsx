@@ -11,7 +11,7 @@ import { Card } from '@ui/components/card'
 
 type AdminTab = 'dashboard' | 'users' | 'reports' | 'audit' | 'analytics'
 
-export const AdminPage: React.FC = () => {
+const AdminPage: React.FC = () => {
   const { user } = useAuth()
   const [activeTab, setActiveTab] = useState<AdminTab>('dashboard')
 
@@ -95,3 +95,5 @@ export const AdminPage: React.FC = () => {
     </div>
   )
 }
+
+export default AdminPage

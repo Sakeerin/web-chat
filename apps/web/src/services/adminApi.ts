@@ -1,4 +1,4 @@
-import { api } from './api'
+import { apiService as api } from './api'
 
 export interface AdminUser {
   id: string

@@ -3,7 +3,7 @@ import { INestApplication } from '@nestjs/common'
 import { PrismaService } from '../database/prisma.service'
 import { JwtService } from '@nestjs/jwt'
 import { User, Conversation, Message } from '@prisma/client'
-import * as request from 'supertest'
+import request from 'supertest'
 
 /**
  * Test utilities for API testing

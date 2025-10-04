@@ -2,7 +2,7 @@ import React from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { SearchInterface } from '@/components/search/SearchInterface'
 
-export const SearchPage: React.FC = () => {
+const SearchPage: React.FC = () => {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   
@@ -25,3 +25,5 @@ export const SearchPage: React.FC = () => {
     </div>
   )
 }
+
+export default SearchPage

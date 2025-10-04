@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { hash } from 'argon2'
+import { ulid } from 'ulid'
 
 const prisma = new PrismaClient()
 
@@ -90,6 +91,7 @@ async function main() {
   const dmMessages = await Promise.all([
     prisma.message.create({
       data: {
+        id: ulid(),
         conversationId: dmConversation.id,
         senderId: users[0].id, // Alice
         type: 'TEXT',
@@ -98,6 +100,7 @@ async function main() {
     }),
     prisma.message.create({
       data: {
+        id: ulid(),
         conversationId: dmConversation.id,
         senderId: users[1].id, // Bob
         type: 'TEXT',
@@ -106,6 +109,7 @@ async function main() {
     }),
     prisma.message.create({
       data: {
+        id: ulid(),
         conversationId: dmConversation.id,
         senderId: users[0].id, // Alice
         type: 'TEXT',
@@ -118,6 +122,7 @@ async function main() {
   const groupMessages = await Promise.all([
     prisma.message.create({
       data: {
+        id: ulid(),
         conversationId: groupConversation.id,
         senderId: users[0].id, // Alice
         type: 'TEXT',
@@ -126,6 +131,7 @@ async function main() {
     }),
     prisma.message.create({
       data: {
+        id: ulid(),
         conversationId: groupConversation.id,
         senderId: users[1].id, // Bob
         type: 'TEXT',
@@ -134,6 +140,7 @@ async function main() {
     }),
     prisma.message.create({
       data: {
+        id: ulid(),
         conversationId: groupConversation.id,
         senderId: users[2].id, // Charlie
         type: 'TEXT',
@@ -142,6 +149,7 @@ async function main() {
     }),
     prisma.message.create({
       data: {
+        id: ulid(),
         conversationId: groupConversation.id,
         senderId: users[3].id, // Diana
         type: 'TEXT',

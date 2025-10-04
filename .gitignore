@@ -123,3 +123,5 @@ playwright/.cache/
 # Prisma
 prisma/migrations/
 !prisma/migrations/.gitkeep
+
+.kiro/

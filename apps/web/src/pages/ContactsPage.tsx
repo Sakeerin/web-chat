@@ -2,7 +2,7 @@
 import { ContactsManager } from '@/components/contacts'
 import type { Contact } from '@/types/contacts'
 
-export function ContactsPage() {
+function ContactsPage() {
   const handleContactSelect = (contact: Contact) => {
     console.log('Selected contact:', contact)
     // This could navigate to a chat with the contact
@@ -22,3 +22,5 @@ export function ContactsPage() {
     </div>
   )
 }
+
+export default ContactsPage

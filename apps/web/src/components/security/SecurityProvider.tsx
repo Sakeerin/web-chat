@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { useSecurity, SecurityState, SecurityAlert } from '../../hooks/useSecurity';
+import { useSecurity } from '../../hooks/useSecurity';
+import type { SecurityState, SecurityAlert } from '../../hooks/useSecurity';
 
 interface SecurityContextValue {
   securityState: SecurityState;
@@ -52,8 +53,10 @@ export function SecurityProvider({
     // Initialize security context
     const initialize = async () => {
       try {
-        // Refresh CSRF token on initialization
-        await security.refreshCSRFToken();
+        // Refresh CSRF token on initialization (non-blocking)
+        security.refreshCSRFToken().catch(() => {
+          // Fail silently - handled in useSecurity hook
+        });
         
         // Check browser security features
         if (typeof window !== 'undefined') {

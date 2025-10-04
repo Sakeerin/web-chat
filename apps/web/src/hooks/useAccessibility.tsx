@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from 'react'
+import React, { useEffect, useRef, useCallback, useState } from 'react'
 
 /**
  * Hook for managing focus within a component

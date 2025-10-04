@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react'
-import { UseQueryResult } from '@tanstack/react-query'
+import type { UseQueryResult } from '@tanstack/react-query'
 import { MessageCircle, Users, Hash, Clock, FileText, Image, Video, Paperclip } from 'lucide-react'
 import { Button } from '@ui/components/button'
 import { cn } from '@/lib/utils'

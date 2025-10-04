@@ -72,8 +72,14 @@ class PWAService {
 
         return registration
       } catch (error) {
-        console.error('Service Worker registration failed:', error)
-        throw error
+        // In development, service worker errors are expected when API isn't running
+        if (import.meta.env.DEV) {
+          console.warn('Service Worker registration failed (expected in dev without API):', error)
+        } else {
+          console.error('Service Worker registration failed:', error)
+        }
+        // Don't throw - allow app to continue without SW
+        return null
       }
     } else {
       throw new Error('Service Worker not supported')
