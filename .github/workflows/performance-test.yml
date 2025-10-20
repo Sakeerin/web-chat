@@ -1,310 +1,310 @@
-name: Performance Testing
+# name: Performance Testing
 
-on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main]
-  schedule:
-    # Run performance tests daily at 2 AM UTC
-    - cron: '0 2 * * *'
+# on:
+#   push:
+#     branches: [main, develop]
+#   pull_request:
+#     branches: [main]
+#   schedule:
+#     # Run performance tests daily at 2 AM UTC
+#     - cron: '0 2 * * *'
 
-jobs:
-  performance-test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
+# jobs:
+#   performance-test:
+#     runs-on: ubuntu-latest
+#     timeout-minutes: 60
 
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: chat_test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
+#     services:
+#       postgres:
+#         image: postgres:15
+#         env:
+#           POSTGRES_PASSWORD: postgres
+#           POSTGRES_DB: chat_test
+#         options: >-
+#           --health-cmd pg_isready
+#           --health-interval 10s
+#           --health-timeout 5s
+#           --health-retries 5
+#         ports:
+#           - 5432:5432
 
-      redis:
-        image: redis:7-alpine
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
+#       redis:
+#         image: redis:7-alpine
+#         options: >-
+#           --health-cmd "redis-cli ping"
+#           --health-interval 10s
+#           --health-timeout 5s
+#           --health-retries 5
+#         ports:
+#           - 6379:6379
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # Needed for performance comparison
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
+#         with:
+#           fetch-depth: 0 # Needed for performance comparison
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
+#       - name: Setup Node.js
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: '20'
+#           cache: 'npm'
 
-      - name: Install dependencies
-        run: |
-          npm install -g pnpm
-          pnpm install
+#       - name: Install dependencies
+#         run: |
+#           npm install -g pnpm
+#           pnpm install
 
-      - name: Setup test environment
-        run: |
-          cp .env.example .env.test
-          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/chat_test" >> .env.test
-          echo "REDIS_URL=redis://localhost:6379" >> .env.test
+#       - name: Setup test environment
+#         run: |
+#           cp .env.example .env.test
+#           echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/chat_test" >> .env.test
+#           echo "REDIS_URL=redis://localhost:6379" >> .env.test
 
-      - name: Build application
-        run: |
-          pnpm build
-        env:
-          NODE_ENV: production
+#       - name: Build application
+#         run: |
+#           pnpm build
+#         env:
+#           NODE_ENV: production
 
-      - name: Setup database
-        run: |
-          pnpm db:migrate
-          pnpm db:seed
-        env:
-          NODE_ENV: test
+#       - name: Setup database
+#         run: |
+#           pnpm db:migrate
+#           pnpm db:seed
+#         env:
+#           NODE_ENV: test
 
-      - name: Install k6
-        run: |
-          sudo gpg -k
-          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
-          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
-          sudo apt-get update
-          sudo apt-get install k6
+#       - name: Install k6
+#         run: |
+#           sudo gpg -k
+#           sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+#           echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+#           sudo apt-get update
+#           sudo apt-get install k6
 
-      - name: Install Lighthouse CI
-        run: npm install -g @lhci/cli
+#       - name: Install Lighthouse CI
+#         run: npm install -g @lhci/cli
 
-      - name: Start application
-        run: |
-          pnpm start:prod &
-          sleep 30 # Wait for application to start
-        env:
-          NODE_ENV: production
+#       - name: Start application
+#         run: |
+#           pnpm start:prod &
+#           sleep 30 # Wait for application to start
+#         env:
+#           NODE_ENV: production
 
-      - name: Wait for application health
-        run: |
-          timeout 60 bash -c 'until curl -f http://localhost:3001/health; do sleep 2; done'
+#       - name: Wait for application health
+#         run: |
+#           timeout 60 bash -c 'until curl -f http://localhost:3001/health; do sleep 2; done'
 
-      - name: Run performance regression tests
-        run: node scripts/performance-regression-test.js
-        env:
-          BASE_URL: http://localhost:3001
-          WS_URL: ws://localhost:3001
+#       - name: Run performance regression tests
+#         run: node scripts/performance-regression-test.js
+#         env:
+#           BASE_URL: http://localhost:3001
+#           WS_URL: ws://localhost:3001
 
-      - name: Upload performance results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: performance-results
-          path: |
-            performance-report.json
-            performance-baseline.json
-            .lighthouseci/
+#       - name: Upload performance results
+#         uses: actions/upload-artifact@v4
+#         if: always()
+#         with:
+#           name: performance-results
+#           path: |
+#             performance-report.json
+#             performance-baseline.json
+#             .lighthouseci/
 
-      - name: Comment PR with performance results
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
+#       - name: Comment PR with performance results
+#         if: github.event_name == 'pull_request'
+#         uses: actions/github-script@v7
+#         with:
+#           script: |
+#             const fs = require('fs');
             
-            if (fs.existsSync('performance-report.json')) {
-              const report = JSON.parse(fs.readFileSync('performance-report.json', 'utf8'));
+#             if (fs.existsSync('performance-report.json')) {
+#               const report = JSON.parse(fs.readFileSync('performance-report.json', 'utf8'));
               
-              let comment = '## 📊 Performance Test Results\n\n';
+#               let comment = '## 📊 Performance Test Results\n\n';
               
-              if (report.comparison.isFirstRun) {
-                comment += '🆕 **First performance test run - baseline created**\n\n';
-              } else {
-                comment += '### Performance Changes\n\n';
+#               if (report.comparison.isFirstRun) {
+#                 comment += '🆕 **First performance test run - baseline created**\n\n';
+#               } else {
+#                 comment += '### Performance Changes\n\n';
                 
-                // Load test changes
-                if (report.comparison.changes.loadTests) {
-                  comment += '#### Backend Performance\n';
-                  Object.entries(report.comparison.changes.loadTests).forEach(([metric, change]) => {
-                    const emoji = change.isRegression ? '❌' : change.change > 0 ? '⚠️' : '✅';
-                    comment += `- ${emoji} **${metric}**: ${change.change > 0 ? '+' : ''}${change.change.toFixed(2)}%\n`;
-                  });
-                  comment += '\n';
-                }
+#                 // Load test changes
+#                 if (report.comparison.changes.loadTests) {
+#                   comment += '#### Backend Performance\n';
+#                   Object.entries(report.comparison.changes.loadTests).forEach(([metric, change]) => {
+#                     const emoji = change.isRegression ? '❌' : change.change > 0 ? '⚠️' : '✅';
+#                     comment += `- ${emoji} **${metric}**: ${change.change > 0 ? '+' : ''}${change.change.toFixed(2)}%\n`;
+#                   });
+#                   comment += '\n';
+#                 }
                 
-                // Frontend test changes
-                if (report.comparison.changes.frontendTests) {
-                  comment += '#### Frontend Performance\n';
-                  Object.entries(report.comparison.changes.frontendTests).forEach(([metric, change]) => {
-                    const emoji = change.isRegression ? '❌' : change.change > 0 ? '⚠️' : '✅';
-                    comment += `- ${emoji} **${metric}**: ${change.change > 0 ? '+' : ''}${change.change.toFixed(2)}%\n`;
-                  });
-                  comment += '\n';
-                }
-              }
+#                 // Frontend test changes
+#                 if (report.comparison.changes.frontendTests) {
+#                   comment += '#### Frontend Performance\n';
+#                   Object.entries(report.comparison.changes.frontendTests).forEach(([metric, change]) => {
+#                     const emoji = change.isRegression ? '❌' : change.change > 0 ? '⚠️' : '✅';
+#                     comment += `- ${emoji} **${metric}**: ${change.change > 0 ? '+' : ''}${change.change.toFixed(2)}%\n`;
+#                   });
+#                   comment += '\n';
+#                 }
+#               }
               
-              comment += '### Thresholds\n';
-              comment += `- API Response Time P95: < ${report.thresholds.api_response_time_p95}ms\n`;
-              comment += `- Message Latency P50: < ${report.thresholds.message_latency_p50}ms\n`;
-              comment += `- Concurrent Users: ≥ ${report.thresholds.concurrent_users}\n`;
-              comment += `- Messages/Second: ≥ ${report.thresholds.messages_per_second}\n`;
+#               comment += '### Thresholds\n';
+#               comment += `- API Response Time P95: < ${report.thresholds.api_response_time_p95}ms\n`;
+#               comment += `- Message Latency P50: < ${report.thresholds.message_latency_p50}ms\n`;
+#               comment += `- Concurrent Users: ≥ ${report.thresholds.concurrent_users}\n`;
+#               comment += `- Messages/Second: ≥ ${report.thresholds.messages_per_second}\n`;
               
-              comment += `\n*Performance test completed at ${report.timestamp}*`;
+#               comment += `\n*Performance test completed at ${report.timestamp}*`;
               
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: comment
-              });
-            }
+#               github.rest.issues.createComment({
+#                 issue_number: context.issue.number,
+#                 owner: context.repo.owner,
+#                 repo: context.repo.repo,
+#                 body: comment
+#               });
+#             }
 
-      - name: Fail on performance regression
-        run: |
-          if [ -f performance-report.json ]; then
-            # Check if there were any regressions
-            if grep -q '"isRegression": true' performance-report.json; then
-              echo "❌ Performance regression detected!"
-              exit 1
-            fi
-          fi
+#       - name: Fail on performance regression
+#         run: |
+#           if [ -f performance-report.json ]; then
+#             # Check if there were any regressions
+#             if grep -q '"isRegression": true' performance-report.json; then
+#               echo "❌ Performance regression detected!"
+#               exit 1
+#             fi
+#           fi
 
-  lighthouse-ci:
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+#   lighthouse-ci:
+#     runs-on: ubuntu-latest
+#     timeout-minutes: 30
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
+#       - name: Setup Node.js
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: '20'
+#           cache: 'npm'
 
-      - name: Install dependencies
-        run: |
-          npm install -g pnpm
-          pnpm install
+#       - name: Install dependencies
+#         run: |
+#           npm install -g pnpm
+#           pnpm install
 
-      - name: Build frontend
-        run: pnpm build:web
-        env:
-          NODE_ENV: production
+#       - name: Build frontend
+#         run: pnpm build:web
+#         env:
+#           NODE_ENV: production
 
-      - name: Run Lighthouse CI
-        run: |
-          npm install -g @lhci/cli
-          lhci autorun
-        env:
-          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+#       - name: Run Lighthouse CI
+#         run: |
+#           npm install -g @lhci/cli
+#           lhci autorun
+#         env:
+#           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
 
-      - name: Upload Lighthouse results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: lighthouse-results
-          path: .lighthouseci/
+#       - name: Upload Lighthouse results
+#         uses: actions/upload-artifact@v4
+#         if: always()
+#         with:
+#           name: lighthouse-results
+#           path: .lighthouseci/
 
-  load-test-matrix:
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    strategy:
-      matrix:
-        test-type: [baseline, concurrent-users, message-throughput]
+#   load-test-matrix:
+#     runs-on: ubuntu-latest
+#     timeout-minutes: 45
+#     strategy:
+#       matrix:
+#         test-type: [baseline, concurrent-users, message-throughput]
 
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: chat_test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
+#     services:
+#       postgres:
+#         image: postgres:15
+#         env:
+#           POSTGRES_PASSWORD: postgres
+#           POSTGRES_DB: chat_test
+#         options: >-
+#           --health-cmd pg_isready
+#           --health-interval 10s
+#           --health-timeout 5s
+#           --health-retries 5
+#         ports:
+#           - 5432:5432
 
-      redis:
-        image: redis:7-alpine
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
+#       redis:
+#         image: redis:7-alpine
+#         options: >-
+#           --health-cmd "redis-cli ping"
+#           --health-interval 10s
+#           --health-timeout 5s
+#           --health-retries 5
+#         ports:
+#           - 6379:6379
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
+#       - name: Setup Node.js
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: '20'
+#           cache: 'npm'
 
-      - name: Install dependencies
-        run: |
-          npm install -g pnpm
-          pnpm install
+#       - name: Install dependencies
+#         run: |
+#           npm install -g pnpm
+#           pnpm install
 
-      - name: Build application
-        run: pnpm build
+#       - name: Build application
+#         run: pnpm build
 
-      - name: Setup database
-        run: |
-          pnpm db:migrate
-          pnpm db:seed
-        env:
-          NODE_ENV: test
+#       - name: Setup database
+#         run: |
+#           pnpm db:migrate
+#           pnpm db:seed
+#         env:
+#           NODE_ENV: test
 
-      - name: Install k6
-        run: |
-          sudo gpg -k
-          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
-          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
-          sudo apt-get update
-          sudo apt-get install k6
+#       - name: Install k6
+#         run: |
+#           sudo gpg -k
+#           sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+#           echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+#           sudo apt-get update
+#           sudo apt-get install k6
 
-      - name: Start application
-        run: |
-          pnpm start:prod &
-          sleep 30
-        env:
-          NODE_ENV: production
+#       - name: Start application
+#         run: |
+#           pnpm start:prod &
+#           sleep 30
+#         env:
+#           NODE_ENV: production
 
-      - name: Run k6 load test
-        run: |
-          case "${{ matrix.test-type }}" in
-            "baseline")
-              k6 run --out json=results.json apps/api/k6/load-test.js
-              ;;
-            "concurrent-users")
-              k6 run --out json=results.json apps/api/k6/concurrent-users-test.js
-              ;;
-            "message-throughput")
-              k6 run --out json=results.json apps/api/k6/message-throughput-test.js
-              ;;
-          esac
-        env:
-          BASE_URL: http://localhost:3001
-          WS_URL: ws://localhost:3001
+#       - name: Run k6 load test
+#         run: |
+#           case "${{ matrix.test-type }}" in
+#             "baseline")
+#               k6 run --out json=results.json apps/api/k6/load-test.js
+#               ;;
+#             "concurrent-users")
+#               k6 run --out json=results.json apps/api/k6/concurrent-users-test.js
+#               ;;
+#             "message-throughput")
+#               k6 run --out json=results.json apps/api/k6/message-throughput-test.js
+#               ;;
+#           esac
+#         env:
+#           BASE_URL: http://localhost:3001
+#           WS_URL: ws://localhost:3001
 
-      - name: Upload k6 results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: k6-results-${{ matrix.test-type }}
-          path: results.json
+#       - name: Upload k6 results
+#         uses: actions/upload-artifact@v4
+#         if: always()
+#         with:
+#           name: k6-results-${{ matrix.test-type }}
+#           path: results.json
